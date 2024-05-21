@@ -5,11 +5,6 @@ import { ChangeSet, Text } from "@codemirror/state";
 const server = http.createServer();
 
 let documents = new Map();
-documents.set("otherdoc", {
-  updates: [],
-  pending: [],
-  doc: Text.of(["other document\n"]),
-});
 
 function getDocument(name) {
   if (documents.has(name)) return documents.get(name);
@@ -63,14 +58,14 @@ io.on("connection", (socket) => {
     try {
       let { updates, pending, doc } = getDocument(documentName);
       docUpdates = JSON.parse(docUpdates);
-      console.log(
-        "doc updates",
-        docUpdates,
-        "version",
-        version,
-        "updates.length",
-        updates.length
-      );
+      // console.log(
+      //   "doc updates",
+      //   docUpdates,
+      //   "version",
+      //   version,
+      //   "updates.length",
+      //   updates.length
+      // );
 
       if (version != updates.length) {
         console.log("version does not match updates length");
@@ -88,10 +83,10 @@ io.on("connection", (socket) => {
             effects: update.effects,
           });
           documents.set(documentName, { updates, pending, doc });
-          console.log("documents after first set", documents, documentName);
+          //console.log("documents after first set", documents, documentName);
           doc = changes.apply(doc);
           documents.set(documentName, { updates, pending, doc });
-          console.log("documents after second set", documents);
+          //console.log("documents after second set", documents);
         }
         socket.emit("pushUpdateResponse", true);
 
@@ -99,7 +94,7 @@ io.on("connection", (socket) => {
           pending.pop()(updates);
         }
         documents.set(documentName, { updates, pending, doc });
-        console.log("documents at end of push updates", documents);
+        //console.log("documents at end of push updates", documents);
       }
     } catch (error) {
       console.error("pushUpdates", error);
