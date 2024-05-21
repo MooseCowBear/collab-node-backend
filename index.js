@@ -1,21 +1,40 @@
 import * as http from "http";
 import { Server } from "socket.io";
 import { ChangeSet, Text } from "@codemirror/state";
+import * as fs from "fs";
+import * as path from "path";
+import { fileURLToPath } from "url";
 
 const server = http.createServer();
 
 let documents = new Map();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function getDocument(name) {
   if (documents.has(name)) return documents.get(name);
+  // read file
+  const filePath = path.join(__dirname, "docs", `${name}.txt`);
+  console.log(filePath);
 
-  // won't need this bc will be fetching from existing scenario. 
-  // will want to set that as the initial doc content
   const documentContent = {
     updates: [],
     pending: [],
     doc: Text.of([`Hello World from ${name}\n`]),
   };
+  fs.readFile(filePath, (err, content) => {
+    if (!err) {
+      // successfully read the file
+      const decoder = new TextDecoder("UTF-8");
+      const strContent = decoder.decode(content);
+      documentContent.doc = Text.of(strContent.split(/\r?\n/));
+      console.log(documentContent);
+      documents.set(name, documentContent);
+      return documentContent;
+    } else {
+      console.log("couldn't read the file", err);
+    }
+  });
   documents.set(name, documentContent);
   return documentContent;
 }
@@ -58,14 +77,6 @@ io.on("connection", (socket) => {
     try {
       let { updates, pending, doc } = getDocument(documentName);
       docUpdates = JSON.parse(docUpdates);
-      // console.log(
-      //   "doc updates",
-      //   docUpdates,
-      //   "version",
-      //   version,
-      //   "updates.length",
-      //   updates.length
-      // );
 
       if (version != updates.length) {
         console.log("version does not match updates length");
@@ -83,10 +94,8 @@ io.on("connection", (socket) => {
             effects: update.effects,
           });
           documents.set(documentName, { updates, pending, doc });
-          //console.log("documents after first set", documents, documentName);
           doc = changes.apply(doc);
           documents.set(documentName, { updates, pending, doc });
-          //console.log("documents after second set", documents);
         }
         socket.emit("pushUpdateResponse", true);
 
@@ -94,7 +103,6 @@ io.on("connection", (socket) => {
           pending.pop()(updates);
         }
         documents.set(documentName, { updates, pending, doc });
-        //console.log("documents at end of push updates", documents);
       }
     } catch (error) {
       console.error("pushUpdates", error);
@@ -108,6 +116,20 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error("getDocument", error);
     }
+  });
+
+  socket.on("save", (documentName) => {
+    console.log("saving");
+    const lines = documents.get(documentName).doc.text;
+    const file = fs.createWriteStream(`docs/${documentName}.txt`);
+
+    file.on("error", function (err) {
+      console.log("error trying to save", err);
+    });
+    lines.forEach(function (line) {
+      file.write(line + "\n");
+    });
+    file.end();
   });
 
   socket.on("disconnect", () => {

@@ -1,0 +1,5 @@
+def some_function(*args)
+  for arg in args:
+    print(arg)
+
+print("with some changes")
