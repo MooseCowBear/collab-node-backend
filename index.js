@@ -33,10 +33,10 @@ function getDocument(name) {
       return documentContent;
     } else {
       console.log("couldn't read the file", err);
+      documents.set(name, documentContent);
+      return documentContent;
     }
   });
-  documents.set(name, documentContent);
-  return documentContent;
 }
 
 let io = new Server(server, {
