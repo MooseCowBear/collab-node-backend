@@ -3,3 +3,4 @@ def some_function(*args)
     print(arg)
 
 print("with some changes")
+s=2

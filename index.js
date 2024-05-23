@@ -17,26 +17,42 @@ function getDocument(name) {
   const filePath = path.join(__dirname, "docs", `${name}.txt`);
   console.log(filePath);
 
-  const documentContent = {
-    updates: [],
-    pending: [],
-    doc: Text.of([`Hello World from ${name}\n`]),
-  };
-  fs.readFile(filePath, (err, content) => {
-    if (!err) {
-      // successfully read the file
-      const decoder = new TextDecoder("UTF-8");
-      const strContent = decoder.decode(content);
-      documentContent.doc = Text.of(strContent.split(/\r?\n/));
-      console.log(documentContent);
-      documents.set(name, documentContent);
-      return documentContent;
-    } else {
-      console.log("couldn't read the file", err);
-      documents.set(name, documentContent);
-      return documentContent;
-    }
-  });
+  // const documentContent = {
+  //   updates: [],
+  //   pending: [],
+  //   doc: Text.of([`Hello World from ${name}\n`]),
+  // };
+
+  try {
+    const buffer = fs.readFileSync(filePath);
+    const fileContent = buffer.toString();
+
+    const documentContent = {
+      updates: [],
+      pending: [],
+      doc: Text.of([fileContent]),
+    };
+
+    documents.set(name, documentContent);
+  } catch {
+    console.log("could not read from file");
+  }
+
+  // fs.readFile(filePath, (err, content) => {
+  //   if (!err) {
+  //     // successfully read the file
+  //     const decoder = new TextDecoder("UTF-8");
+  //     const strContent = decoder.decode(content);
+  //     documentContent.doc = Text.of(strContent.split(/\r?\n/));
+  //     console.log(documentContent);
+  //     documents.set(name, documentContent);
+  //     return documentContent;
+  //   } else {
+  //     console.log("couldn't read the file", err);
+  //     documents.set(name, documentContent);
+  //     return documentContent;
+  //   }
+  // });
 }
 
 let io = new Server(server, {
@@ -79,7 +95,7 @@ io.on("connection", (socket) => {
       docUpdates = JSON.parse(docUpdates);
 
       if (version != updates.length) {
-        console.log("version does not match updates length");
+        console.log("version", version, "length", updates.length);
         socket.emit("pushUpdateResponse", false);
       } else {
         console.log("trying to update, entering for loop");
@@ -102,6 +118,7 @@ io.on("connection", (socket) => {
         while (pending.length) {
           pending.pop()(updates);
         }
+        console.log("setting changes as:", updates, pending, doc);
         documents.set(documentName, { updates, pending, doc });
       }
     } catch (error) {
