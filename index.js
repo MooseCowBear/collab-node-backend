@@ -20,7 +20,7 @@ function getDocument(name) {
   if (documents.has(name)) return documents.get(name);
   // read file
   const filePath = path.join(__dirname, "docs", `${name}.txt`);
-  console.log(filePath);
+  console.log("reading:", filePath);
 
   try {
     const buffer = fs.readFileSync(filePath);
@@ -78,15 +78,12 @@ io.on("connection", (socket) => {
       docUpdates = JSON.parse(docUpdates);
 
       if (version != updates.length) {
-        console.log("version", version, "length", updates.length);
         socket.emit("pushUpdateResponse", false);
       } else {
-        console.log("trying to update, entering for loop");
         for (let update of docUpdates) {
           // Convert the JSON representation to an actual ChangeSet
           // instance
           let changes = ChangeSet.fromJSON(update.changes);
-          console.log("changes", changes);
           updates.push({
             changes,
             clientID: update.clientID,
@@ -101,7 +98,6 @@ io.on("connection", (socket) => {
         while (pending.length) {
           pending.pop()(updates);
         }
-        console.log("setting changes as:", updates, pending, doc);
         documents.set(documentName, { updates, pending, doc });
       }
     } catch (error) {
@@ -111,8 +107,14 @@ io.on("connection", (socket) => {
 
   socket.on("getDocument", (documentName) => {
     try {
-      let { updates, doc } = getDocument(documentName);
-      socket.emit("getDocumentResponse", updates.length, doc.toString());
+      const document = getDocument(documentName);
+      if (document) {
+        socket.emit(
+          "getDocumentResponse",
+          document.updates.length,
+          document.doc.toString()
+        );
+      }
     } catch (error) {
       console.error("getDocument", error);
     }
