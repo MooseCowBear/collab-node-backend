@@ -90,7 +90,6 @@ io.on("connection", (socket) => {
       for (let update of docUpdates) {
         let changes = update.changes;
         updates.push(update);
-        documents.set(documentName, { updates, pending, doc }); 
         doc = changes.apply(doc);
         documents.set(documentName, { updates, pending, doc });
       }
